@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SHADOW STRIKE 3D REALISTIC | MOG Studio</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Rajdhani:wght@600;700;900&display=swap" rel="stylesheet">
+    <!-- Three.js Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #020404;
+            font-family: 'Rajdhani', sans-serif;
+            color: #fff;
+        }
+        .font-cinzel { font-family: 'Cinzel', serif; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+
+        /* Cinematic HUD Styling */
+        .glow-red { text-shadow: 0 0 15px rgba(239, 68, 68, 0.8), 0 0 30px rgba(220, 38, 38, 0.6); }
+        .glow-cyan { text-shadow: 0 0 15px rgba(6, 182, 212, 0.8), 0 0 30px rgba(14, 165, 233, 0.6); }
+        .glow-gold { text-shadow: 0 0 15px rgba(245, 158, 11, 0.8), 0 0 30px rgba(217, 119, 6, 0.6); }
+        
+        .btn-glow-cyan { box-shadow: 0 0 15px rgba(6, 182, 212, 0.4); }
+        .btn-glow-cyan:active { transform: scale(0.94); box-shadow: 0 0 25px rgba(6, 182, 212, 0.8); }
+        .btn-glow-red { box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
+        .btn-glow-red:active { transform: scale(0.94); box-shadow: 0 0 25px rgba(239, 68, 68, 0.8); }
+        .btn-glow-gold { box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+        .btn-glow-gold:active { transform: scale(0.94); box-shadow: 0 0 25px rgba(245, 158, 11, 0.8); }
+        .btn-glow-blue { box-shadow: 0 0 15px rgba(59, 130, 246, 0.4); }
+        .btn-glow-blue:active { transform: scale(0.94); box-shadow: 0 0 25px rgba(59, 130, 246, 0.8); }
+
+        @media (orientation: portrait) {
+            #portrait-warning { display: flex !important; }
+        }
+        .vignette { box-shadow: inset 0 0 140px rgba(0,0,0,0.95); }
+        .health-fill { transition: width 0.12s cubic-bezier(0.1, 0.9, 0.2, 1); }
+
+        /* Screen Shake Keyframes */
+        .shake { animation: cameraShake 0.25s cubic-bezier(.36,.07,.19,-0.97) both; }
+        @keyframes cameraShake {
+            10%, 90% { transform: translate3d(-3px, 1px, 0); }
+            20%, 80% { transform: translate3d(4px, -2px, 0); }
+            30%, 50%, 70% { transform: translate3d(-5px, 3px, 0); }
+            40%, 60% { transform: translate3d(5px, -3px, 0); }
+        }
+    </style>
+</head>
+<body class="bg-black select-none overflow-hidden">
+
+    <!-- PORTRAIT ORIENTATION WARNING -->
+    <div id="portrait-warning" class="fixed inset-0 bg-black/95 z-50 hidden flex-col items-center justify-center p-6 text-center">
+        <i class="fa-solid fa-rotate text-5xl text-amber-500 mb-4 animate-spin"></i>
+        <h2 class="text-2xl font-black font-cinzel text-amber-400">ROTATE DEVICE TO LANDSCAPE</h2>
+        <p class="text-gray-400 text-sm mt-2">Designed for high-performance landscape play.</p>
+    </div>
+
+    <!-- MAIN GAME CONTAINER -->
+    <div id="game-container" class="relative w-full h-screen overflow-hidden">
+        
+        <!-- WebGL Canvas -->
+        <canvas id="three-canvas"></canvas>
+
+        <!-- Cinematic Overlay -->
+        <div class="absolute inset-0 pointer-events-none vignette z-10"></div>
+
+        <!-- HUD -->
+        <div id="hud" class="absolute top-0 left-0 w-full p-4 sm:p-6 z-20 flex flex-col justify-between pointer-events-none hidden">
+            <!-- Header Bar -->
+            <div class="flex justify-between items-center max-w-6xl mx-auto w-full mb-2">
+                <!-- Player 1 Profile -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-cyan-400 bg-gradient-to-br from-cyan-950 to-black flex items-center justify-center font-bold text-cyan-300 font-cinzel text-xl shadow-lg">
+                        <i class="fa-solid fa-user-ninja"></i>
+                    </div>
+                    <div>
+                        <div class="text-[10px] sm:text-xs text-gray-400 uppercase tracking-widest font-bold">SHADOW MASTERY</div>
+                        <div class="text-cyan-400 font-black font-cinzel text-base sm:text-2xl tracking-wider glow-cyan">KAGE</div>
+                    </div>
+                </div>
+
+                <!-- Studio Logo -->
+                <div class="text-center">
+                    <div class="text-[9px] sm:text-xs tracking-widest text-red-500 font-bold">POWERED BY</div>
+                    <div class="text-lg sm:text-2xl font-black font-cinzel text-white tracking-widest glow-red">MOG STUDIO</div>
+                </div>
+
+                <!-- AI Enemy Profile -->
+                <div class="flex items-center space-x-3 text-right flex-row-reverse">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-red-600 bg-gradient-to-br from-red-950 to-black flex items-center justify-center font-bold text-red-500 font-cinzel text-xl shadow-lg">
+                        <i class="fa-solid fa-skull"></i>
+                    </div>
+                    <div class="mr-3">
+                        <div class="text-[10px] sm:text-xs text-gray-400 uppercase tracking-widest font-bold">RIVAL DEMON</div>
+                        <div class="text-red-500 font-black font-cinzel text-base sm:text-2xl tracking-wider glow-red">RONIN</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Health Bars -->
+            <div class="flex justify-between items-center max-w-6xl mx-auto w-full gap-4 sm:gap-6">
+                <!-- Player Health -->
+                <div class="w-1/2 bg-gray-950/90 border border-cyan-500/50 p-1.5 rounded shadow-2xl backdrop-blur-md">
+                    <div id="player-health" class="h-3.5 sm:h-5 bg-gradient-to-r from-cyan-600 via-teal-400 to-cyan-300 rounded-sm health-fill w-full shadow-inner"></div>
+                </div>
+
+                <!-- Timer -->
+                <div class="flex flex-col items-center justify-center shrink-0">
+                    <div id="round-timer" class="text-2xl sm:text-4xl font-black font-cinzel text-amber-400 glow-gold">99</div>
+                </div>
+
+                <!-- Enemy Health -->
+                <div class="w-1/2 bg-gray-950/90 border border-red-600/50 p-1.5 rounded shadow-2xl backdrop-blur-md flex justify-end">
+                    <div id="enemy-health" class="h-3.5 sm:h-5 bg-gradient-to-l from-red-700 via-rose-500 to-red-400 rounded-sm health-fill w-full shadow-inner"></div>
+                </div>
+            </div>
+
+            <!-- Dynamic Combos -->
+            <div class="flex justify-between max-w-6xl mx-auto w-full mt-3">
+                <div id="player-combo" class="text-2xl sm:text-4xl font-black font-cinzel text-cyan-400 opacity-0 transition-opacity duration-200 glow-cyan">
+                    <span id="combo-count">0</span>x COMBO
+                </div>
+                <div id="enemy-combo" class="text-2xl sm:text-4xl font-black font-cinzel text-red-500 opacity-0 transition-opacity duration-200 glow-red">
+                    <span id="enemy-combo-count">0</span>x COMBO
+                </div>
+            </div>
+        </div>
+
+        <!-- Announcement Banner -->
+        <div id="announcer" class="absolute inset-0 flex items-center justify-center pointer-events-none z-30 hidden">
+            <h1 id="announcer-text" class="text-5xl sm:text-8xl font-black font-cinzel text-red-600 tracking-widest glow-red transform scale-125 transition-all duration-300">
+                READY
+            </h1>
+        </div>
+
+        <!-- Main Start Menu -->
+        <div id="main-menu" class="absolute inset-0 bg-black/90 backdrop-blur-md z-40 flex flex-col items-center justify-between p-6 sm:p-10">
+            <div class="text-center mt-4">
+                <p class="text-amber-500 tracking-widest font-bold text-xs sm:text-sm uppercase">MOG STUDIO ENGINE</p>
+                <h1 class="text-4xl sm:text-7xl font-black font-cinzel text-white tracking-wider glow-red mt-1">
+                    SHADOW STRIKE <span class="text-red-600">3D</span>
+                </h1>
+                <p class="text-gray-400 text-xs sm:text-sm tracking-widest mt-2 uppercase">Realistic PBR Ninja Duel • Bamboo Forest</p>
+            </div>
+
+            <!-- Dojo Instructions -->
+            <div class="max-w-xl w-full bg-gradient-to-b from-gray-900/90 to-black/95 border border-emerald-800/40 p-6 rounded-xl text-center shadow-2xl backdrop-blur-md">
+                <h3 class="text-amber-400 font-bold font-cinzel text-base mb-3">DOJO CONTROLS</h3>
+                <div class="grid grid-cols-2 gap-2 text-xs text-gray-300 text-left mb-6">
+                    <div class="bg-gray-800/60 p-2.5 rounded border border-gray-700/50"><span class="text-cyan-400 font-bold">A / D</span> - Move Left / Right</div>
+                    <div class="bg-gray-800/60 p-2.5 rounded border border-gray-700/50"><span class="text-cyan-400 font-bold">W / S</span> - Jump / Lower Guard</div>
+                    <div class="bg-gray-800/60 p-2.5 rounded border border-gray-700/50"><span class="text-cyan-400 font-bold">J</span> - Light Slash</div>
+                    <div class="bg-gray-800/60 p-2.5 rounded border border-gray-700/50"><span class="text-cyan-400 font-bold">K</span> - Overhead Heavy Slash</div>
+                    <div class="bg-gray-800/60 p-2.5 rounded border border-gray-700/50"><span class="text-cyan-400 font-bold">I</span> - Blade Thrust</div>
+                    <div class="bg-gray-800/60 p-2.5 rounded border border-gray-700/50"><span class="text-cyan-400 font-bold">L</span> - Parry / Guard Stance</div>
+                </div>
+                <button id="start-btn" class="w-full py-4 bg-gradient-to-r from-red-700 via-amber-600 to-red-700 text-white font-black font-cinzel text-xl sm:text-2xl rounded-lg border border-amber-400/50 btn-glow-gold uppercase tracking-widest">
+                    ENTER THE DUEL
+                </button>
+            </div>
+
+            <div class="text-center text-xs text-gray-500">
+                <p>Powered by Three.js PBR Engine • Web Audio Synthesizer • MOG Studio © 2026</p>
+            </div>
+        </div>
+
+        <!-- Victory / Defeat Overlay -->
+        <div id="game-over-screen" class="absolute inset-0 bg-black/92 backdrop-blur-md z-40 flex flex-col items-center justify-center p-6 hidden">
+            <h2 id="victory-title" class="text-5xl sm:text-8xl font-black font-cinzel text-amber-400 tracking-wider glow-gold mb-2 text-center">
+                VICTORY!
+            </h2>
+            <p id="victory-sub" class="text-gray-300 text-base sm:text-xl mb-8 tracking-widest text-center font-cinzel">YOU CLAIMED THE BAMBOO SHADOWS</p>
+
+            <button id="restart-btn" class="px-10 py-4 bg-gradient-to-r from-amber-600 to-red-600 text-white font-black font-cinzel text-xl sm:text-2xl rounded-lg border border-amber-400/50 btn-glow-gold uppercase tracking-widest">
+                RESTART DUEL
+            </button>
+        </div>
+
+        <!-- Touch Controls (Mobile Landscape HUD Overlay) -->
+        <div id="touch-controls" class="absolute bottom-4 inset-x-6 z-30 flex justify-between items-end pointer-events-none">
+            <!-- Left D-Pad -->
+            <div class="grid grid-cols-3 gap-2 w-36 h-36 sm:w-40 sm:h-40 bg-gray-950/70 p-2 rounded-full backdrop-blur-md border border-gray-700/60 pointer-events-auto shadow-2xl">
+                <div></div>
+                <button id="btn-up" class="bg-gray-800/90 active:bg-cyan-600 text-white rounded-t-xl flex items-center justify-center text-xl font-bold border border-gray-600">
+                    <i class="fa-solid fa-chevron-up"></i>
+                </button>
+                <div></div>
+                <button id="btn-left" class="bg-gray-800/90 active:bg-cyan-600 text-white rounded-l-xl flex items-center justify-center text-xl font-bold border border-gray-600">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <div class="bg-gray-900/90 rounded-full flex items-center justify-center border border-cyan-500/40">
+                    <div class="w-4 h-4 rounded-full bg-cyan-400"></div>
+                </div>
+                <button id="btn-right" class="bg-gray-800/90 active:bg-cyan-600 text-white rounded-r-xl flex items-center justify-center text-xl font-bold border border-gray-600">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+                <div></div>
+                <button id="btn-down" class="bg-gray-800/90 active:bg-cyan-600 text-white rounded-b-xl flex items-center justify-center text-xl font-bold border border-gray-600">
+                    <i class="fa-solid fa-chevron-down"></i>
+                </button>
+                <div></div>
+            </div>
+
+            <!-- Right Action Panel -->
+            <div class="flex flex-col gap-3 pointer-events-auto">
+                <div class="flex gap-3">
+                    <button id="btn-attack" class="w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-700 text-white font-black font-cinzel text-xs border-2 border-cyan-300 btn-glow-cyan flex flex-col items-center justify-center shadow-2xl">
+                        <i class="fa-solid fa-hand-fist text-lg mb-0.5"></i>
+                        <span>SLASH</span>
+                    </button>
+                    <button id="btn-heavy" class="w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-gradient-to-br from-red-600 to-red-800 text-white font-black font-cinzel text-xs border-2 border-red-400 btn-glow-red flex flex-col items-center justify-center shadow-2xl">
+                        <i class="fa-solid fa-bolt text-lg mb-0.5"></i>
+                        <span>HEAVY</span>
+                    </button>
+                </div>
+                <div class="flex gap-3 justify-end">
+                    <button id="btn-thrust" class="w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 text-white font-black font-cinzel text-xs border-2 border-amber-300 btn-glow-gold flex flex-col items-center justify-center shadow-2xl">
+                        <i class="fa-solid fa-location-arrow text-lg mb-0.5"></i>
+                        <span>THRUST</span>
+                    </button>
+                    <button id="btn-block" class="w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-gradient-to-br from-blue-600 to-blue-800 text-white font-black font-cinzel text-xs border-2 border-blue-400 btn-glow-blue flex flex-col items-center justify-center shadow-2xl">
+                        <i class="fa-solid fa-shield-halved text-lg mb-0.5"></i>
+                        <span>PARRY</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MAIN ENGINE SCRIPT -->
+    <script>
+        // --- REALISTIC WEB AUDIO SYNTHESIZER ---
+        class RealisticAudioFX {
+            constructor() {
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            // High-velocity Katana Swoosh
+            playSwoosh(type = 'SLASH') {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                const freqMap = { 'SLASH': 450, 'HEAVY': 320, 'THRUST': 600 };
+                const durMap = { 'SLASH': 0.16, 'HEAVY': 0.22, 'THRUST': 0.12 };
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freqMap[type] || 400, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(70, this.ctx.currentTime + (durMap[type] || 0.15));
+
+                gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + (durMap[type] || 0.15));
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + (durMap[type] || 0.15));
+            }
+
+            // Dynamic Blade Impact Sound
+            playImpact(isHeavy = false) {
+                if (!this.ctx) return;
+                
+                // Low thump
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(isHeavy ? 220 : 160, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.25);
+                gain.gain.setValueAtTime(0.7, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.25);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.25);
+
+                // Metallic Clang Resonance
+                const clangOsc = this.ctx.createOscillator();
+                const clangGain = this.ctx.createGain();
+                clangOsc.type = 'square';
+                clangOsc.frequency.setValueAtTime(850, this.ctx.currentTime);
+                clangOsc.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 0.18);
+                clangGain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                clangGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.18);
+                clangOsc.connect(clangGain);
+                clangGain.connect(this.ctx.destination);
+                clangOsc.start();
+                clangOsc.stop(this.ctx.currentTime + 0.18);
+            }
+
+            // Metal Parry Clang
+            playParry() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(1200, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(400, this.ctx.currentTime + 0.12);
+
+                gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.12);
+            }
+        }
+
+        const audioFx = new RealisticAudioFX();
+
+        // --- THREE.JS GRAPHICS & LOGIC ---
+        let scene, camera, renderer;
+        let playerRig, enemyRig;
+        let bambooTrees = [];
+        let particles = [];
+        let fallenLeaves = [];
+        let trailParticles = [];
+        let lights = {};
+
+        let gameState = "MENU";
+        let roundTime = 99;
+        let timerInterval = null;
+
+        const keys = {
+            a: false, d: false, w: false, s: false,
+            j: false, k: false, i: false, l: false,
+            ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false
+        };
+
+        // Fighter Logic State
+        class NinjaCharacter {
+            constructor(x, accentHex, isPlayer) {
+                this.x = x;
+                this.y = 0;
+                this.z = 0;
+                this.vy = 0;
+                this.hp = 100;
+                this.maxHp = 100;
+                this.isJumping = false;
+                this.isAttacking = false;
+                this.attackType = null;
+                this.isBlocking = false;
+                this.facing = isPlayer ? 1 : -1;
+                this.combo = 0;
+                this.comboTimer = null;
+                this.hitReact = 0;
+                this.isDead = false;
+                this.accentHex = accentHex;
+                this.isPlayer = isPlayer;
+
+                // AI properties
+                this.aiTimer = 0;
+                this.aiState = 'IDLE';
+
+                // Rig reference
+                this.rigGroup = null;
+                this.bones = {};
+                this.bladeTrailMesh = null;
+            }
+        }
+
+        const player = new NinjaCharacter(-2.8, 0x06b6d4, true);
+        const enemy = new NinjaCharacter(2.8, 0xef4444, false);
+
+        // --- PROCEDURAL PBR TEXTURES GENERATOR ---
+        function generateArmorBumpTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#808080';
+            ctx.fillRect(0, 0, 256, 256);
+
+            ctx.fillStyle = '#ffffff';
+            for (let i = 0; i < 256; i += 8) {
+                ctx.fillRect(i, 0, 4, 256);
+            }
+            ctx.fillStyle = '#000000';
+            for (let j = 0; j < 256; j += 8) {
+                ctx.fillRect(0, j, 256, 4);
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const pbrBumpMap = generateArmorBumpTexture();
+        pbrBumpMap.wrapS = THREE.RepeatWrapping;
+        pbrBumpMap.wrapT = THREE.RepeatWrapping;
+        pbrBumpMap.repeat.set(4, 4);
+
+        // --- INIT THREE.JS ENGINE ---
+        function init() {
+            const canvas = document.getElementById('three-canvas');
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x020606);
+            scene.fog = new THREE.FogExp2(0x030d0a, 0.038);
+
+            camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 2.3, 9.2);
+            camera.lookAt(0, 1.4, 0);
+
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.1;
+
+            // Ambient & Volumetric Lighting Setup
+            const ambient = new THREE.AmbientLight(0x0a1f18, 1.5);
+            scene.add(ambient);
+
+            const moonLight = new THREE.DirectionalLight(0x5eead4, 1.8);
+            moonLight.position.set(-9, 16, 6);
+            moonLight.castShadow = true;
+            moonLight.shadow.mapSize.width = 2048;
+            moonLight.shadow.mapSize.height = 2048;
+            moonLight.shadow.bias = -0.0001;
+            scene.add(moonLight);
+
+            // Dynamic Character Lights
+            lights.playerSpot = new THREE.SpotLight(0x06b6d4, 4.0, 12, Math.PI / 4, 0.5);
+            lights.playerSpot.position.set(-3, 6, 3);
+            scene.add(lights.playerSpot);
+
+            lights.enemySpot = new THREE.SpotLight(0xef4444, 4.5, 12, Math.PI / 4, 0.5);
+            lights.enemySpot.position.set(3, 6, 3);
+            scene.add(lights.enemySpot);
+
+            // Build Environment & Realistic Characters
+            createBambooForestEnvironment();
+            playerRig = buildRealisticNinjaRig(player);
+            enemyRig = buildRealisticNinjaRig(enemy);
+
+            scene.add(playerRig);
+            scene.add(enemyRig);
+
+            window.addEventListener('resize', onWindowResize);
+            bindInputs();
+
+            animate();
+        }
+
+        // --- ENVIRONMENT: REALISTIC MISTY BAMBOO FOREST ---
+        function createBambooForestEnvironment() {
+            // Realistic Ground Terrain with PBR bump
+            const floorGeo = new THREE.CylinderGeometry(14, 14.8, 0.4, 64);
+            const floorMat = new THREE.MeshStandardMaterial({
+                color: 0x050c09,
+                roughness: 0.85,
+                metalness: 0.15,
+                bumpMap: pbrBumpMap,
+                bumpScale: 0.015
+            });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.position.y = -0.2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Ring Marker
+            const ringGeo = new THREE.RingGeometry(8.5, 8.7, 64);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: 0x06b6d4,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.25
+            });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = Math.PI / 2;
+            ring.position.y = 0.01;
+            scene.add(ring);
+
+            // Wind-Blown Bamboo Stalks
+            const bambooMat = new THREE.MeshStandardMaterial({
+                color: 0x082618,
+                roughness: 0.5,
+                metalness: 0.2
+            });
+
+            for (let i = 0; i < 70; i++) {
+                const x = (Math.random() - 0.5) * 24;
+                const z = -2 - Math.random() * 14;
+                if (Math.abs(x) < 2.2 && z > -4.5) continue;
+
+                const height = 9 + Math.random() * 7;
+                const bambooGroup = new THREE.Group();
+                const stalkGeo = new THREE.CylinderGeometry(0.12, 0.15, height, 16);
+                const stalk = new THREE.Mesh(stalkGeo, bambooMat);
+                stalk.position.y = height / 2;
+                stalk.castShadow = true;
+                bambooGroup.add(stalk);
+
+                // Joints
+                for (let j = 1.2; j < height; j += 1.6) {
+                    const nodeGeo = new THREE.CylinderGeometry(0.16, 0.16, 0.1, 14);
+                    const nodeMat = new THREE.MeshBasicMaterial({ color: 0x104e2e });
+                    const node = new THREE.Mesh(nodeGeo, nodeMat);
+                    node.position.y = j;
+                    bambooGroup.add(node);
+                }
+
+                bambooGroup.position.set(x, 0, z);
+                scene.add(bambooGroup);
+                bambooTrees.push({ group: bambooGroup, baseAngle: x });
+            }
+
+            // Wind-blown Leaf Particles
+            const leafGeo = new THREE.BoxGeometry(0.09, 0.09, 0.01);
+            const leafMat = new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.4, transparent: true, opacity: 0.8 });
+            for (let i = 0; i < 60; i++) {
+                const leaf = new THREE.Mesh(leafGeo, leafMat);
+                leaf.position.set((Math.random() - 0.5) * 18, Math.random() * 8 + 1, (Math.random() - 0.5) * 12);
+                scene.add(leaf);
+                fallenLeaves.push({
+                    mesh: leaf,
+                    vy: 0.012 + Math.random() * 0.015,
+                    sway: Math.random() * 0.025
+                });
+            }
+        }
+
+        // --- REALISTIC HUMANOID NINJA RIG BUILDER ---
+        function buildRealisticNinjaRig(ninja) {
+            const root = new THREE.Group();
+            const bones = {};
+
+            // Metallic PBR Ninja Armor Materials
+            const clothMat = new THREE.MeshStandardMaterial({
+                color: 0x090b10,
+                roughness: 0.75,
+                metalness: 0.25,
+                bumpMap: pbrBumpMap,
+                bumpScale: 0.02
+            });
+
+            const armorPlateMat = new THREE.MeshStandardMaterial({
+                color: 0x181c24,
+                roughness: 0.35,
+                metalness: 0.85,
+                emissive: ninja.accentHex,
+                emissiveIntensity: 0.15
+            });
+
+            const accentEmissiveMat = new THREE.MeshBasicMaterial({ color: ninja.accentHex });
+
+            // Pelvis Base
+            const pelvis = new THREE.Group();
+            pelvis.position.y = 1.0;
+            root.add(pelvis);
+            bones.pelvis = pelvis;
+
+            // Torso & Chest Plate
+            const spine = new THREE.Group();
+            spine.position.y = 0.2;
+            pelvis.add(spine);
+            bones.spine = spine;
+
+            const torsoGeo = new THREE.CylinderGeometry(0.24, 0.18, 0.65, 12);
+            const torso = new THREE.Mesh(torsoGeo, clothMat);
+            torso.castShadow = true;
+            spine.add(torso);
+
+            // Layered Metallic Chest Armor
+            const chestPlateGeo = new THREE.BoxGeometry(0.44, 0.38, 0.32);
+            const chestPlate = new THREE.Mesh(chestPlateGeo, armorPlateMat);
+            chestPlate.position.set(0, 0.1, 0.02);
+            chestPlate.castShadow = true;
+            spine.add(chestPlate);
+
+            // Head / Mask Rigging
+            const neck = new THREE.Group();
+            neck.position.y = 0.42;
+            spine.add(neck);
+            bones.neck = neck;
+
+            const headGeo = new THREE.SphereGeometry(0.18, 16, 16);
+            const head = new THREE.Mesh(headGeo, clothMat);
+            head.position.y = 0.15;
+            head.castShadow = true;
+            neck.add(head);
+
+            // Glowing Eyes Visor
+            const visorGeo = new THREE.BoxGeometry(0.24, 0.045, 0.06);
+            const visor = new THREE.Mesh(visorGeo, accentEmissiveMat);
+            visor.position.set(0, 0.16, 0.14);
+            neck.add(visor);
+
+            // Shoulder Guards & Arms
+            bones.leftArm = createArm(spine, -0.28, clothMat, armorPlateMat, true);
+            bones.rightArm = createArm(spine, 0.28, clothMat, armorPlateMat, false);
+
+            // Leg Rigging
+            bones.leftLeg = createLeg(pelvis, -0.14, clothMat, armorPlateMat);
+            bones.rightLeg = createLeg(pelvis, 0.14, clothMat, armorPlateMat);
+
+            // Katana Creation & Rig Attachment
+            const katana = buildRealisticKatana(ninja.accentHex);
+            katana.position.set(0, -0.55, 0.12);
+            katana.rotation.x = Math.PI / 3;
+            bones.rightArm.lower.add(katana);
+            bones.katana = katana;
+
+            ninja.rigGroup = root;
+            ninja.bones = bones;
+
+            return root;
+        }
+
+        function createArm(parent, xOffset, clothMat, armorMat, isLeft) {
+            const shoulder = new THREE.Group();
+            shoulder.position.set(xOffset, 0.28, 0);
+            parent.add(shoulder);
+
+            // Shoulder Guard / Pauldron
+            const pauldronGeo = new THREE.BoxGeometry(0.22, 0.15, 0.22);
+            const pauldron = new THREE.Mesh(pauldronGeo, armorMat);
+            pauldron.position.y = 0.04;
+            shoulder.add(pauldron);
+
+            const upper = new THREE.Group();
+            shoulder.add(upper);
+
+            const upperGeo = new THREE.CylinderGeometry(0.08, 0.07, 0.35, 10);
+            const upperMesh = new THREE.Mesh(upperGeo, clothMat);
+            upperMesh.position.y = -0.175;
+            upper.add(upperMesh);
+
+            const lower = new THREE.Group();
+            lower.position.y = -0.35;
+            upper.add(lower);
+
+            const lowerGeo = new THREE.CylinderGeometry(0.07, 0.06, 0.35, 10);
+            const lowerMesh = new THREE.Mesh(lowerGeo, armorMat);
+            lowerMesh.position.y = -0.175;
+            lower.add(lowerMesh);
+
+            return { shoulder, upper, lower };
+        }
+
+        function createLeg(parent, xOffset, clothMat, armorMat) {
+            const hip = new THREE.Group();
+            hip.position.set(xOffset, -0.1, 0);
+            parent.add(hip);
+
+            const thigh = new THREE.Group();
+            hip.add(thigh);
+
+            const thighGeo = new THREE.CylinderGeometry(0.11, 0.09, 0.45, 10);
+            const thighMesh = new THREE.Mesh(thighGeo, clothMat);
+            thighMesh.position.y = -0.225;
+            thigh.add(thighMesh);
+
+            const shin = new THREE.Group();
+            shin.position.y = -0.45;
+            thigh.add(shin);
+
+            const shinGeo = new THREE.CylinderGeometry(0.09, 0.07, 0.45, 10);
+            const shinMesh = new THREE.Mesh(shinGeo, armorMat);
+            shinMesh.position.y = -0.225;
+            shin.add(shinMesh);
+
+            return { hip, thigh, shin };
+        }
+
+        function buildRealisticKatana(accentHex) {
+            const katanaGroup = new THREE.Group();
+
+            // Wrapped Tsuka (Handle)
+            const handleGeo = new THREE.CylinderGeometry(0.026, 0.026, 0.32, 12);
+            const handleMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
+            const handle = new THREE.Mesh(handleGeo, handleMat);
+            handle.position.y = -0.16;
+            katanaGroup.add(handle);
+
+            // Metallic Guard (Tsuba)
+            const tsubaGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.015, 16);
+            const tsubaMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.9, roughness: 0.2 });
+            const tsuba = new THREE.Mesh(tsubaGeo, tsubaMat);
+            katanaGroup.add(tsuba);
+
+            // Realistic Curved Steel Blade with Emissive Edge Glow
+            const bladeGeo = new THREE.BoxGeometry(0.038, 1.35, 0.065);
+            const bladeMat = new THREE.MeshStandardMaterial({
+                color: 0xcccccc,
+                emissive: accentHex,
+                emissiveIntensity: 0.85,
+                metalness: 0.95,
+                roughness: 0.15
+            });
+            const blade = new THREE.Mesh(bladeGeo, bladeMat);
+            blade.position.y = 0.675;
+            blade.castShadow = true;
+            katanaGroup.add(blade);
+
+            return katanaGroup;
+        }
+
+        // --- BIND CONTROLS ---
+        function bindInputs() {
+            window.addEventListener('keydown', (e) => {
+                const k = e.key.toLowerCase();
+                if (keys.hasOwnProperty(k)) keys[k] = true;
+                if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
+            });
+
+            window.addEventListener('keyup', (e) => {
+                const k = e.key.toLowerCase();
+                if (keys.hasOwnProperty(k)) keys[k] = false;
+                if (keys.hasOwnProperty(e.key)) keys[e.key] = false;
+            });
+
+            document.getElementById('start-btn').addEventListener('click', () => { audioFx.init(); startGame(); });
+            document.getElementById('restart-btn').addEventListener('click', () => { audioFx.init(); startGame(); });
+
+            bindTouchButton('btn-left', () => keys.a = true, () => keys.a = false);
+            bindTouchButton('btn-right', () => keys.d = true, () => keys.d = false);
+            bindTouchButton('btn-up', () => keys.w = true, () => keys.w = false);
+            bindTouchButton('btn-down', () => keys.s = true, () => keys.s = false);
+
+            bindTouchButton('btn-attack', () => triggerAttack(player, 'SLASH'), null);
+            bindTouchButton('btn-heavy', () => triggerAttack(player, 'HEAVY'), null);
+            bindTouchButton('btn-thrust', () => triggerAttack(player, 'THRUST'), null);
+            bindTouchButton('btn-block', () => keys.l = true, () => keys.l = false);
+        }
+
+        function bindTouchButton(id, onPress, onRelease) {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); audioFx.init(); if (onPress) onPress(); });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); if (onRelease) onRelease(); });
+            btn.addEventListener('mousedown', () => { audioFx.init(); if (onPress) onPress(); });
+            btn.addEventListener('mouseup', () => { if (onRelease) onRelease(); });
+        }
+
+        // --- GAME LOOP & COMBAT SYSTEMS ---
+        function startGame() {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+
+            player.hp = 100; player.x = -2.8; player.y = 0; player.combo = 0; player.isDead = false; player.isAttacking = false;
+            enemy.hp = 100; enemy.x = 2.8; enemy.y = 0; enemy.combo = 0; enemy.isDead = false; enemy.isAttacking = false;
+
+            updateHealthUI();
+            roundTime = 99;
+            document.getElementById('round-timer').innerText = roundTime;
+
+            const announcer = document.getElementById('announcer');
+            const announcerText = document.getElementById('announcer-text');
+            announcer.classList.remove('hidden');
+            announcerText.innerText = "READY";
+
+            setTimeout(() => {
+                announcerText.innerText = "STRIKE!";
+                setTimeout(() => {
+                    announcer.classList.add('hidden');
+                    gameState = "FIGHTING";
+                    startTimer();
+                }, 700);
+            }, 800);
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (gameState === "FIGHTING") {
+                    roundTime--;
+                    document.getElementById('round-timer').innerText = roundTime;
+                    if (roundTime <= 0) endGame(player.hp >= enemy.hp ? "PLAYER" : "ENEMY");
+                }
+            }, 1000);
+        }
+
+        function endGame(winner) {
+            gameState = "GAMEOVER";
+            if (timerInterval) clearInterval(timerInterval);
+
+            const gameOverScreen = document.getElementById('game-over-screen');
+            const title = document.getElementById('victory-title');
+            const sub = document.getElementById('victory-sub');
+
+            gameOverScreen.classList.remove('hidden');
+            if (winner === "PLAYER") {
+                title.innerText = "VICTORY!";
+                title.className = "text-5xl sm:text-8xl font-black font-cinzel text-cyan-400 tracking-wider glow-cyan mb-2 text-center";
+                sub.innerText = "YOU MASTERED THE SHADOW DUEL";
+                enemy.isDead = true;
+            } else {
+                title.innerText = "DEFEATED";
+                title.className = "text-5xl sm:text-8xl font-black font-cinzel text-red-600 tracking-wider glow-red mb-2 text-center";
+                sub.innerText = "THE RIVAL DEMON CLAIMED VICTORY";
+                player.isDead = true;
+            }
+        }
+
+        function triggerAttack(attacker, type) {
+            if (gameState !== "FIGHTING" || attacker.isAttacking || attacker.isBlocking || attacker.isDead) return;
+
+            attacker.isAttacking = true;
+            attacker.attackType = type;
+            audioFx.playSwoosh(type);
+
+            const dmgMap = { 'SLASH': 12, 'HEAVY': 22, 'THRUST': 16 };
+            const timingMap = { 'SLASH': 150, 'HEAVY': 240, 'THRUST': 180 };
+
+            setTimeout(() => {
+                const defender = attacker === player ? enemy : player;
+                checkHit(attacker, defender, dmgMap[type]);
+            }, timingMap[type]);
+
+            setTimeout(() => {
+                attacker.isAttacking = false;
+                attacker.attackType = null;
+            }, 460);
+        }
+
+        function checkHit(attacker, defender, damage) {
+            const dist = Math.abs(attacker.x - defender.x);
+            if (dist < 2.0 && !defender.isDead) {
+                const hitX = (attacker.x + defender.x) / 2;
+
+                if (defender.isBlocking) {
+                    audioFx.playParry();
+                    defender.hp = Math.max(0, defender.hp - Math.floor(damage * 0.12));
+                    createSparks(hitX, 1.4, 0, 0x38bdf8, 12);
+                } else {
+                    const isHeavy = attacker.attackType === 'HEAVY';
+                    audioFx.playImpact(isHeavy);
+                    defender.hp = Math.max(0, defender.hp - damage);
+                    defender.hitReact = 14;
+
+                    attacker.combo++;
+                    showCombo(attacker.isPlayer ? 'player' : 'enemy', attacker.combo);
+                    createSparks(hitX, 1.4, 0, 0xf59e0b, isHeavy ? 28 : 16);
+
+                    // Screen Shake Effect on Heavy Hit
+                    if (isHeavy) {
+                        const gameContainer = document.getElementById('game-container');
+                        gameContainer.classList.add('shake');
+                        setTimeout(() => gameContainer.classList.remove('shake'), 250);
+                    }
+
+                    // Pushback Physics
+                    const push = attacker.x < defender.x ? 1 : -1;
+                    defender.x = Math.max(-5.5, Math.min(5.5, defender.x + push * (isHeavy ? 0.45 : 0.28)));
+                }
+
+                updateHealthUI();
+                if (defender.hp <= 0) endGame(attacker.isPlayer ? "PLAYER" : "ENEMY");
+            }
+        }
+
+        function updateHealthUI() {
+            document.getElementById('player-health').style.width = player.hp + '%';
+            document.getElementById('enemy-health').style.width = enemy.hp + '%';
+        }
+
+        function showCombo(who, count) {
+            const el = document.getElementById(who + '-combo');
+            const cntEl = document.getElementById(who === 'player' ? 'combo-count' : 'enemy-combo-count');
+            cntEl.innerText = count;
+            el.style.opacity = '1';
+
+            const attacker = who === 'player' ? player : enemy;
+            clearTimeout(attacker.comboTimer);
+            attacker.comboTimer = setTimeout(() => {
+                el.style.opacity = '0';
+                attacker.combo = 0;
+            }, 1400);
+        }
+
+        function createSparks(x, y, z, hexColor, count) {
+            for (let i = 0; i < count; i++) {
+                const sparkGeo = new THREE.SphereGeometry(0.04, 4, 4);
+                const sparkMat = new THREE.MeshBasicMaterial({ color: hexColor });
+                const spark = new THREE.Mesh(sparkGeo, sparkMat);
+                spark.position.set(x, y, z);
+                
+                const vel = new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.22,
+                    (Math.random() - 0.2) * 0.22,
+                    (Math.random() - 0.5) * 0.15
+                );
+                scene.add(spark);
+                particles.push({ mesh: spark, vel: vel, life: 16 });
+            }
+        }
+
+        // --- AI LOGIC ---
+        function updateAI() {
+            if (gameState !== "FIGHTING" || enemy.isDead) return;
+
+            enemy.aiTimer++;
+            const dist = Math.abs(player.x - enemy.x);
+
+            if (enemy.aiTimer % 30 === 0) {
+                if (dist > 2.5) enemy.aiState = 'APPROACH';
+                else if (dist < 1.4) {
+                    const r = Math.random();
+                    if (r < 0.5) enemy.aiState = 'ATTACK';
+                    else if (r < 0.8) enemy.aiState = 'BLOCK';
+                    else enemy.aiState = 'RETREAT';
+                } else {
+                    enemy.aiState = Math.random() > 0.4 ? 'ATTACK' : 'APPROACH';
+                }
+            }
+
+            if (enemy.aiState === 'APPROACH') {
+                if (enemy.x > player.x + 1.5) enemy.x -= 0.05;
+                else if (enemy.x < player.x - 1.5) enemy.x += 0.05;
+            } else if (enemy.aiState === 'RETREAT') {
+                if (enemy.x < 5.2) enemy.x += 0.055;
+            } else if (enemy.aiState === 'ATTACK' && !enemy.isAttacking) {
+                const types = ['SLASH', 'HEAVY', 'THRUST'];
+                triggerAttack(enemy, types[Math.floor(Math.random() * types.length)]);
+            }
+
+            enemy.isBlocking = (enemy.aiState === 'BLOCK' && !enemy.isAttacking);
+        }
+
+        // --- ANIMATION LOOP & SKELETAL RIG IK ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // 1. Particle Physics
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.mesh.position.add(p.vel);
+                p.life--;
+                p.mesh.scale.multiplyScalar(0.9);
+                if (p.life <= 0) {
+                    scene.remove(p.mesh);
+                    particles.splice(i, 1);
+                }
+            }
+
+            // Falling Leaves & Swaying Bamboo Trees
+            const time = Date.now() * 0.002;
+            bambooTrees.forEach((tree, idx) => {
+                tree.group.rotation.z = Math.sin(time + idx) * 0.025;
+            });
+
+            fallenLeaves.forEach(leaf => {
+                leaf.mesh.position.y -= leaf.vy;
+                leaf.mesh.position.x += Math.sin(time + leaf.mesh.position.y) * leaf.sway;
+                if (leaf.mesh.position.y < 0.1) {
+                    leaf.mesh.position.y = 8;
+                    leaf.mesh.position.x = (Math.random() - 0.5) * 18;
+                }
+            });
+
+            // 2. Fighter Inputs & Movements
+            if (gameState === "FIGHTING") {
+                if ((keys.a || keys.ArrowLeft) && player.x > -5.5) player.x -= 0.07;
+                if ((keys.d || keys.ArrowRight) && player.x < 5.5) player.x += 0.07;
+
+                if ((keys.w || keys.ArrowUp) && !player.isJumping) {
+                    player.vy = 0.18;
+                    player.isJumping = true;
+                }
+                if (player.isJumping) {
+                    player.y += player.vy;
+                    player.vy -= 0.012;
+                    if (player.y <= 0) { player.y = 0; player.isJumping = false; }
+                }
+
+                if (keys.j) triggerAttack(player, 'SLASH');
+                if (keys.k) triggerAttack(player, 'HEAVY');
+                if (keys.i) triggerAttack(player, 'THRUST');
+                player.isBlocking = keys.l || keys.s || keys.ArrowDown;
+
+                player.facing = player.x < enemy.x ? 1 : -1;
+                enemy.facing = enemy.x > player.x ? -1 : 1;
+
+                updateAI();
+            }
+
+            // Spotlight Tracking
+            lights.playerSpot.position.x = player.x;
+            lights.enemySpot.position.x = enemy.x;
+
+            // Rig Mesh Placement
+            playerRig.position.set(player.x, player.y, player.z);
+            playerRig.rotation.y = player.facing === 1 ? Math.PI / 2 : -Math.PI / 2;
+
+            enemyRig.position.set(enemy.x, enemy.y, enemy.z);
+            enemyRig.rotation.y = enemy.facing === 1 ? Math.PI / 2 : -Math.PI / 2;
+
+            // Rig Animations
+            animateRealisticRig(player);
+            animateRealisticRig(enemy);
+
+            // Dynamic Camera Setup
+            const midX = (player.x + enemy.x) / 2;
+            const dist = Math.abs(player.x - enemy.x);
+            camera.position.x += (midX - camera.position.x) * 0.08;
+            camera.position.z += (Math.max(7.5, dist + 4.5) - camera.position.z) * 0.08;
+            camera.lookAt(midX, 1.35, 0);
+
+            renderer.render(scene, camera);
+        }
+
+        // --- REALISTIC SKELETAL RIG PROCEDURAL IK ANIMATION ---
+        function animateRealisticRig(ninja) {
+            const b = ninja.bones;
+            const t = Date.now() * 0.01;
+
+            if (ninja.isDead) {
+                // Ragdoll Death Fall
+                b.pelvis.position.y = 0.2;
+                b.spine.rotation.x = 1.2;
+                b.leftArm.shoulder.rotation.z = 1.1;
+                b.rightArm.shoulder.rotation.z = -1.1;
+                return;
+            }
+
+            if (ninja.hitReact > 0) {
+                ninja.hitReact--;
+                b.spine.rotation.x = -0.35;
+                b.neck.rotation.x = 0.3;
+                b.rightArm.upper.rotation.z = -0.4;
+                return;
+            }
+
+            if (ninja.isAttacking) {
+                if (ninja.attackType === 'HEAVY') {
+                    // Heavy Overhead Slash
+                    b.spine.rotation.x = 0.2;
+                    b.rightArm.shoulder.rotation.z = -2.4;
+                    b.rightArm.upper.rotation.x = -0.6;
+                    b.leftArm.shoulder.rotation.z = 1.2;
+                } else if (ninja.attackType === 'THRUST') {
+                    // Straight Forward Thrust
+                    b.spine.rotation.x = 0.1;
+                    b.rightArm.shoulder.rotation.z = -1.57;
+                    b.rightArm.upper.rotation.x = 0;
+                } else {
+                    // Fast Light Slash
+                    b.spine.rotation.y = Math.sin(t * 2) * 0.4;
+                    b.rightArm.shoulder.rotation.z = -1.2;
+                    b.rightArm.upper.rotation.y = Math.sin(t * 3) * 1.5;
+                }
+            } else if (ninja.isBlocking) {
+                // Defensive Stance
+                b.spine.rotation.x = -0.15;
+                b.rightArm.shoulder.rotation.z = -1.8;
+                b.leftArm.shoulder.rotation.z = 1.4;
+                b.rightArm.upper.rotation.x = 0.8;
+            } else {
+                // Natural Idle & Combat Stance
+                const idleBounce = Math.sin(t) * 0.04;
+                b.pelvis.position.y = 1.0 + idleBounce;
+                b.spine.rotation.x = 0.08;
+                b.spine.rotation.y = 0;
+                b.rightArm.shoulder.rotation.z = -0.6 + idleBounce;
+                b.leftArm.shoulder.rotation.z = 0.6 - idleBounce;
+                b.rightLeg.hip.rotation.z = 0.14;
+                b.leftLeg.hip.rotation.z = -0.14;
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
